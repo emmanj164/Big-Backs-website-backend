@@ -1,29 +1,32 @@
 ﻿const express = require('express');
-const { pool } = require('./db');
+const Order = require('./models/Order');
 
 const router = express.Router();
 
-// Create new order
-router.post('/', async (req, res) => {
-  const { student_name, items, total, payment, change_amount } = req.body;
-  const order_number = 'ORD-' + Date.now();
-  
+// Get all orders
+router.get('/', async (req, res) => {
   try {
-    await pool.query(
-      'INSERT INTO Orders (order_number, student_name, total, payment, change_amount, items) VALUES (?, ?, ?, ?, ?, ?)',
-      [order_number, student_name, total, payment, change_amount, JSON.stringify(items)]
-    );
-    res.status(201).json({ order_number });
+    const orders = await Order.find().sort({ order_date: -1 });
+    res.json(orders);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// Get all orders
-router.get('/', async (req, res) => {
+// Add new order
+router.post('/', async (req, res) => {
+  const { order_number, student_name, total, payment, change_amount, items } = req.body;
   try {
-    const [orders] = await pool.query('SELECT * FROM Orders ORDER BY order_date DESC');
-    res.json(orders);
+    const newOrder = new Order({
+      order_number,
+      student_name,
+      total,
+      payment,
+      change_amount,
+      items
+    });
+    await newOrder.save();
+    res.status(201).json({ message: 'Order created successfully' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
